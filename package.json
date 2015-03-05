@@ -1,0 +1,19 @@
+{
+  "name": "golem",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Chris Dickinson <chris@neversaw.us> (http://neversaw.us/)",
+  "license": "ISC",
+  "dependencies": {
+    "escontrol": "file:../../../../../var/folders/sr/xskxdnjj1l76jfgm10g06m1m0000gn/T/npm-96621-b8167edb/1425419670007-0.47200375609099865/e0af8887c229d4c123ff89a1465328b7738bf196",
+    "espree": "^1.10.0",
+    "npm-stats": "^1.1.0",
+    "pg.js": "^4.1.1",
+    "request": "^2.53.0",
+    "tar-stream": "^1.1.2"
+  }
+}
