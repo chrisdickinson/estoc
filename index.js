@@ -1,6 +1,9 @@
+"use strict"
+
 module.exports = inspectCode
 
 var makeTrackable = require('./lib/make-trackable.js')
+var defineRuntime = require('./lib/define-runtime.js')
 var escontrol = require('escontrol')
 var path = require('path')
 
@@ -10,13 +13,24 @@ function inspectCode(baseCFG, cache, filename, pkg, ast, queue, ready) {
     onoperation: onoperation,
     onfunction: onfunction,
     oncalled: oncalled,
+    onload: onload,
     oncall: oncall,
     builtins: baseCFG ? baseCFG.builtins() : null,
     global: baseCFG ? baseCFG.global() : null
   })
-  var paused = false
+
+  if (!baseCFG) {
+    defineRuntime(cfg, trackUsage)
+  }
+  cfg.pause = pause
+  cfg.resume = resume
+  cfg.paused = 0
   var gotFunction = null
   var onFunctionMode = 0
+
+  function trackUsage(obj, name, kind) {
+    console.log('%s%s', pkg.name, name)
+  }
 
   var requireFn = cfg.makeFunction(function(cfg, ctxt, args, isNew) {
     var target = args[0]
@@ -30,32 +44,30 @@ function inspectCode(baseCFG, cache, filename, pkg, ast, queue, ready) {
       return cfg._valueStack.push(cfg.makeUnknown())
     }
 
-    if (pkg.hasDependency(val.split(/\/\\/g)[0])) {
-      return cfg._valueStack.push(cfg.makeUnknown())
-    }
+    //if (pkg.hasDependency(val.split(/\/\\/g)[0])) {
+    //  return cfg._valueStack.push(cfg.makeUnknown())
+    //}
 
     if (!/^(\w:\\|\\|\/|\.)/.test(val)) {
-      return cfg._valueStack.push(makeTrackable(cfg, val, function(obj, name) {
-        console.log('%s%s: %s', pkg.name, filename, name)
-      }))
+      return cfg._valueStack.push(makeTrackable(cfg, filename + ': ' + val, trackUsage))
     }
 
-    paused = true
-
+    if (global.cnt == 29) debugger
+    cfg.pause()
     pkg.resolveFilename(filename, val, function(err, targetFile) {
       if (err) {
         return ready(err)
       }
 
       if (cache.has(targetFile)) {
-        paused = false
+        cfg.resume()
         cfg._valueStack.push(cache.get(targetFile))
         return iterate()
       }
       cache.set(targetFile, cfg.makeObject())
 
       if (path.extname(targetFile) === '.json') {
-        paused = false
+        cfg.resume()
         cfg._valueStack.push(cache.get(targetFile))
         return iterate()
       }
@@ -74,7 +86,7 @@ function inspectCode(baseCFG, cache, filename, pkg, ast, queue, ready) {
 
         cache.set(targetFile, value)
         cfg._valueStack.push(value)
-        paused = false
+        cfg.resume()
         iterate()
       }
     })
@@ -106,12 +118,9 @@ function inspectCode(baseCFG, cache, filename, pkg, ast, queue, ready) {
   setImmediate(iterate)
 
   function iterate() {
-    var i = 0
-    while (cfg.advance()) {
-      if (paused) {
-        return
-      }
+    while (!cfg.paused && cfg.advance()) {
     }
+    if (cfg.paused) return
     oncomplete()
   }
 
@@ -125,14 +134,55 @@ function inspectCode(baseCFG, cache, filename, pkg, ast, queue, ready) {
         functions = functions.filter(function(xs) {
           return xs.sharedFunctionInfo().callCount() === 0
         })
-        iter()
+        setImmediate(iter)
       })
     }
 
-    
-    cb(null, cfg.makeUnknown())
     // this gets into weird territory.
-    // cb(null, moduleObj.getprop('exports').value())
+    // cb(null, cfg.makeUnknown())
+    cb(null, patchEntries(moduleObj.getprop('exports').value()))
+
+    function patchEntries(value) {
+      if (value.call) {
+        return patchFunction(value)
+      } 
+      if (value.isObject()) {
+        return patchObject(value)
+      }
+      return value
+    }
+
+    function patchObject(value) {
+      if (!value._attributes) {
+        return value
+      }
+
+      for (var key in value._attributes) {
+        var prop = value.getprop(key)
+        prop.assign(patchEntries(prop.value()))
+      }
+
+      return value
+    }
+
+    function patchFunction(value) {
+      var baseCall = value.call
+      var called = 0
+      var cached = null
+      value.call = function(cfg) {
+        if (called++) {
+          return cfg._valueStack.push(cached)
+        }
+        cfg._pushFrame(thunkCalled, {})
+        return baseCall.apply(this, arguments)
+      }
+      // just capturing the return value!
+      function thunkCalled() {
+        cached = this._valueStack.current()
+      }
+      return value
+    }
+
 
     function iter() {
       if (!functions.length) {
@@ -149,15 +199,19 @@ function inspectCode(baseCFG, cache, filename, pkg, ast, queue, ready) {
       var argLen = next._code.params.length
       var args = []
 
+      var marks = next.getMark('ioc')
+
       for(var i = 0; i < argLen; ++i) {
-        args.push(cfg.makeUnknown())
+        args.push(marks.length ?
+          makeTrackable(cfg, marks[0].concat(['<ioc-arg #' + i + '>']), trackUsage) :
+          cfg.makeUnknown()
+        )
       }
 
       next.call(cfg, cfg.makeUnknown(), args)
       try {
         iterate()
       } catch(err) {
-        console.log(err.stack)
         oncomplete()
       }
     }
@@ -174,6 +228,12 @@ function inspectCode(baseCFG, cache, filename, pkg, ast, queue, ready) {
 
   }
 
+  function onload(name, value) {
+    if (value.__title__) {
+      trackUsage(null, value.__title__.join('.') + ' (as ' + name.getName() + ')')
+    }
+  }
+
   function onfunction(fn, astNode) {
     switch (onFunctionMode) {
       case 0:
@@ -185,6 +245,16 @@ function inspectCode(baseCFG, cache, filename, pkg, ast, queue, ready) {
         // hah, okay. cool story, really.
       break;
     }
+  }
+
+  function pause() {
+    if (baseCFG && baseCFG.pause) baseCFG.pause()
+    ++cfg.paused
+  }
+
+  function resume() {
+    if (baseCFG && baseCFG.resume) baseCFG.resume()
+    --cfg.paused
   }
 }
 
