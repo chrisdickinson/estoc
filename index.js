@@ -64,10 +64,10 @@ function inspectCode(baseCFG, cache, filename, pkg, ast, queue, ready) {
         cfg._valueStack.push(cache.get(targetFile))
         return iterate()
       }
-      cache.set(targetFile, cfg.makeObject())
 
       if (path.extname(targetFile) === '.json') {
         cfg.resume()
+        cache.set(targetFile, cfg.makeObject())
         cfg._valueStack.push(cache.get(targetFile))
         return iterate()
       }
@@ -76,6 +76,7 @@ function inspectCode(baseCFG, cache, filename, pkg, ast, queue, ready) {
         if (err) {
           return ready(err)
         }
+        cache.set(targetFile, cfg.makeObject())
         inspectCode(cfg, cache, targetFile, pkg, ast, queue, onready)
       })
 
@@ -87,7 +88,7 @@ function inspectCode(baseCFG, cache, filename, pkg, ast, queue, ready) {
         cache.set(targetFile, value)
         cfg._valueStack.push(value)
         cfg.resume()
-        iterate()
+        setImmediate(iterate)
       }
     })
   })
@@ -118,7 +119,12 @@ function inspectCode(baseCFG, cache, filename, pkg, ast, queue, ready) {
   setImmediate(iterate)
 
   function iterate() {
+    var i = 0
     while (!cfg.paused && cfg.advance()) {
+      if (++i > 1000) {
+        setImmediate(iterate)
+        return
+      }
     }
     if (cfg.paused) return
     oncomplete()
@@ -131,6 +137,7 @@ function inspectCode(baseCFG, cache, filename, pkg, ast, queue, ready) {
     if (functions.length) {
       queue.push(function(cb) {
         ready = cb
+        var len = functions.length
         functions = functions.filter(function(xs) {
           return xs.sharedFunctionInfo().callCount() === 0
         })
@@ -140,49 +147,7 @@ function inspectCode(baseCFG, cache, filename, pkg, ast, queue, ready) {
 
     // this gets into weird territory.
     // cb(null, cfg.makeUnknown())
-    cb(null, patchEntries(moduleObj.getprop('exports').value()))
-
-    function patchEntries(value) {
-      if (value.call) {
-        return patchFunction(value)
-      } 
-      if (value.isObject()) {
-        return patchObject(value)
-      }
-      return value
-    }
-
-    function patchObject(value) {
-      if (!value._attributes) {
-        return value
-      }
-
-      for (var key in value._attributes) {
-        var prop = value.getprop(key)
-        prop.assign(patchEntries(prop.value()))
-      }
-
-      return value
-    }
-
-    function patchFunction(value) {
-      var baseCall = value.call
-      var called = 0
-      var cached = null
-      value.call = function(cfg) {
-        if (called++) {
-          return cfg._valueStack.push(cached)
-        }
-        cfg._pushFrame(thunkCalled, {})
-        return baseCall.apply(this, arguments)
-      }
-      // just capturing the return value!
-      function thunkCalled() {
-        cached = this._valueStack.current()
-      }
-      return value
-    }
-
+    cb(null, moduleObj.getprop('exports').value())
 
     function iter() {
       if (!functions.length) {
@@ -222,10 +187,13 @@ function inspectCode(baseCFG, cache, filename, pkg, ast, queue, ready) {
   }
 
   function oncall(fn, context, args, recursion) {
+    if (fn.sharedFunctionInfo) {
+      var sfi = fn.sharedFunctionInfo()
+      return sfi._records < 1
+    }
   }
 
   function oncalled(fn, context, args, recursion, result) {
-
   }
 
   function onload(name, value) {
