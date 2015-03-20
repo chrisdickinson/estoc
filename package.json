@@ -12,7 +12,7 @@
   "author": "Chris Dickinson <chris@neversaw.us> (http://neversaw.us/)",
   "license": "ISC",
   "dependencies": {
-    "escontrol": "^2.0.0",
+    "escontrol": "^3.0.0",
     "concat-stream": "^1.4.7",
     "espree": "^1.10.0",
     "npm-stats": "^1.1.0",
