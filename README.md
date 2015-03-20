@@ -26,6 +26,13 @@ estoc('path/to/packageDir').pipe(toString).pipe(process.stdout)
 estoc('path/to/package.tgz').pipe(toString).pipe(process.stdout)
 ```
 
+It also has a CLI:
+
+```shell
+$ estoc ../path/to/package
+<usage>
+```
+
 ## How does it work?
 
 estoc uses [escontrol](http://npm.im/escontrol) as a stack machine to simulate
