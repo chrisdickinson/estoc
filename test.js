@@ -1,3 +1,4 @@
+#!/usr/bin/env iojs
 const createUsageStream = require('./index.js')
 
 var stream    = require('stream')
