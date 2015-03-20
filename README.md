@@ -26,6 +26,19 @@ estoc('path/to/packageDir').pipe(toString).pipe(process.stdout)
 estoc('path/to/package.tgz').pipe(toString).pipe(process.stdout)
 ```
 
+## How does it work?
+
+estoc uses [escontrol](http://npm.im/escontrol) as a stack machine to simulate
+executing JavaScript code. While estoc provides the Node-specific glue,
+escontrol simulates a modern JS runtime. escontrol will trace into any known
+function call, while estoc builds a queue of "unexecuted" functions. Once
+escontrol completes, estoc will simulate a call to the next "unexecuted"
+function, popping it off the stack, until there are no more "unexecuted"
+functions available.
+
+It does not boil the ocean, but it does throw several microwaves into the
+Pacific.
+
 ## API
 
 ### `estoc(filename[, estocOptions][, ready])` → `Readable<Usage>()`
