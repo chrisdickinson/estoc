@@ -1,6 +1,6 @@
 {
   "name": "estoc",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "a static analyzer for npm packages",
   "main": "index.js",
   "bin": {
