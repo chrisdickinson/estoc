@@ -1,5 +1,7 @@
 # estoc
 
+![estoc-example](https://cloud.githubusercontent.com/assets/37303/6747664/d39c9d58-ce99-11e4-8b41-b5dbbfa55f0c.gif)
+
 This module allows users to statically track uses of external packages in a
 given package. Any required module that is not directly part of the package is
 considered external – whether it be a dependency or a core module. All usage of
@@ -95,8 +97,8 @@ The usage path format is `.`-delimited, and may contain the following types of s
 
 * `name` – simple name load or lookup.
 * `name (as xyz)` – a load that has been assigned to a variable named `xyz`.
-* `<return-value (from functionName filename:line)>` – the result of calling an external value. The origin of the return-value is tracked in parentheses.
-* `<ioc-arg #N>` – the Nth "inversion of control" argument. These are callbacks passed to external packages, and are executed with incomplete type information.
+* [`<return-value (from functionName filename:line)>`](https://cloud.githubusercontent.com/assets/37303/6747677/fd5aa2ac-ce99-11e4-8955-65db4339fe18.gif) – the result of calling an external value. The origin of the return-value is tracked in parentheses.
+* [`<ioc-arg #N>`](https://cloud.githubusercontent.com/assets/37303/6747674/ef4b9c02-ce99-11e4-80d1-dd8c2079e7be.gif) – the Nth "inversion of control" argument. These are callbacks passed to external packages, and are executed with incomplete type information.
 * `on "eventName"` – sugar for a call to `EventEmitter.prototype.on`, with the supplied event name.
 
 #### `usage.formatTryCatch()` →  `String("" | "<no frame>" | "<no func>" | "throws to...")`
@@ -105,7 +107,7 @@ Returns a string representing the location the usage will throw an exception to 
 If `""`, `<no frame>`, or `<no func>` are returned, the usage will thrown an exception to
 the top of scope.
 
-`throws to...`-style exceptions will throw to a known `try` statement.
+`throws to...`-style exceptions will throw to a [known `try` statement](https://cloud.githubusercontent.com/assets/37303/6747697/47d8e71c-ce9a-11e4-96cb-6a91da417c8f.gif).
 
 ## License
 
