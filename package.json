@@ -1,16 +1,16 @@
 {
-  "name": "golem",
+  "name": "estoc",
   "version": "1.0.0",
-  "description": "",
+  "description": "a static analyzer for npm packages",
   "main": "index.js",
   "bin": {
-    "sorry-folks": "./test.js"
+    "estoc": "./test.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Chris Dickinson <chris@neversaw.us> (http://neversaw.us/)",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "escontrol": "^3.0.0",
     "concat-stream": "^1.4.7",
