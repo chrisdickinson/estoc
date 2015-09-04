@@ -65,12 +65,15 @@ function executeModule (visitor, module) {
     visitor.moduleStack.pop()
     module.exports = moduleObject.getprop('exports').value()
 
-    if (module.exports.sharedFunctionInfo) {
+    if (module.exports.sharedFunctionInfo &&
+        module.exports.sharedFunctionInfo()) {
       module.exports.sharedFunctionInfo().isExport = true
     }
     if (module.exports.names) {
       for (var name of module.exports.names()) {
-        if (name.value() && name.value().sharedFunctionInfo) {
+        if (name.value() &&
+            name.value().sharedFunctionInfo &&
+            name.value().sharedFunctionInfo()) {
           name.value().sharedFunctionInfo().isExport = true
         }
       }
@@ -83,7 +86,9 @@ function executeModule (visitor, module) {
 }
 
 function getRequireFor (visitor, module) {
-  var fn = visitor.cfg.makeFunction(RequireImpl)
+  var fn = visitor.cfg.makeFunction(function (cfg, ctxt, args, isNew) {
+    return RequireImpl(visitor, module, cfg, ctxt, args, isNew)
+  })
   fn.visitor = visitor
   fn.module = module
   return fn

@@ -3,6 +3,7 @@
 module.exports = class UnexecutedList {
   constructor () {
     this._map = new Map()
+    this._seen = new WeakSet()
     this._generation = 0
   }
   next () {
@@ -27,6 +28,10 @@ module.exports = class UnexecutedList {
     return fn
   }
   add (fn) {
+    if (this._seen.has(fn.sharedFunctionInfo())) {
+      return
+    }
+    this._seen.add(fn.sharedFunctionInfo())
     fn.sharedFunctionInfo()._generation = this._generation
     this._map.set(fn.sharedFunctionInfo(), fn)
   }

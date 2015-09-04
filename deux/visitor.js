@@ -110,7 +110,7 @@ function advance (visitor, ready) {
   visitor.onresume = iter
   return iter()
 
-  function iter() {
+  function run() {
     for (var i = 0; i < 1000; ++i) {
       if (visitor.paused) {
         return
@@ -123,6 +123,14 @@ function advance (visitor, ready) {
     }
     if (i === 1000) {
       return setImmediate(iter)
+    }
+  }
+
+  function iter() {
+    try {
+      run()
+    } catch (err) {
+      return ready(err)
     }
   }
 }

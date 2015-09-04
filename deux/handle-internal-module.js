@@ -39,6 +39,9 @@ function handleInternalModule (visitor, sourceModule, targetName, ready) {
     if (data.slice(0, 2) === '#!') {
       data = data.split('\n').slice(1).join('\n')
     }
+    if (path.extname(targetFilename) === '.json') {
+      data = 'module.exports = ' + data
+    }
     try {
       var ast = esprima.parse(
         wrapper.join(data),

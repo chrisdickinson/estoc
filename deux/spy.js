@@ -58,6 +58,7 @@ proto.getprop = function (prop, immediate) {
     this.visitor.report(spy)
     name.assign(spy)
   }
+
   return name
 }
 
@@ -135,11 +136,11 @@ proto.makeIOCArgument = function (name, idx) {
 function makeAccess (visitor, manner, name) {
   var lastFn = visitor.cfg._callStack.current().getFunction()
   var lastAST = visitor.cfg.lastASTNode() || {loc: {start: 0, column: 0}}
-  var module = lastFn ? lastFn.module : {filename: '<builtin>'}
+  var module = (lastFn ? lastFn.module : null) || {filename: '<builtin>'}
   return {
     manner: manner,
     filename: module.filename,
-    position: lastAST.loc,
+    position: lastAST.loc || {start: {line: 0, column: 0}},
     name: name
   }
 }

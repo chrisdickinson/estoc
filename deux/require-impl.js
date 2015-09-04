@@ -5,9 +5,7 @@ module.exports = RequireImpl
 const handleExternalModule = require('./handle-external-module.js')
 const handleInternalModule = require('./handle-internal-module.js')
 
-function RequireImpl (cfg, ctxt, args, isNew) {
-  var visitor = this.visitor
-  var module = this.module
+function RequireImpl (visitor, module, cfg, ctxt, args, isNew) {
   var target = args[0]
 
   if (!target) {
@@ -19,7 +17,7 @@ function RequireImpl (cfg, ctxt, args, isNew) {
     // of calling RequireImpl with each outcome.
     var outcomes = target.outcomes()
     var results = []
-    return enumerateRequireOutcomes(outcomes, this, results)
+    return enumerateRequireOutcomes(outcomes, this, visitor, module, results)
   }
 
   if (!target.isString() || !target._value) {
@@ -49,18 +47,18 @@ function RequireImpl (cfg, ctxt, args, isNew) {
   }
 }
 
-function enumerateRequireOutcomes (outcomeIter, fnObj, results) {
+function enumerateRequireOutcomes (outcomeIter, fnObj, visitor, module, results) {
   var next = outcomeIter.next()
   if (next.done) {
-    return fnObj.visitor.cfg._valueStack.push(
-      fnObj.visitor.cfg.makeEither(results)
+    return visitor.cfg._valueStack.push(
+      visitor.cfg.makeEither(results)
     )
   }
 
-  fnObj.visitor.cfg.insertFrame(function () {
-    results.push(fnObj.visitor.cfg._valueStack.pop())
-    enumerateRequireOutcomes(outcomeIter, fnObj, results)
+  visitor.cfg.insertFrame(function () {
+    results.push(visitor.cfg._valueStack.pop())
+    enumerateRequireOutcomes(outcomeIter, fnObj, visitor, module, results)
     return true
   })
-  RequireImpl.call(fnObj, null, [next.value], false)
+  RequireImpl.call(fnObj, visitor, module, visitor.cfg, null, [next.value], false)
 }
