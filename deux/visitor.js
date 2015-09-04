@@ -27,6 +27,8 @@ function exportVisitor() {
         readFile: fs.readFile,
         isFile: defaultIsFile
       }
+      this.fs.readFile = this.fs.readFile.bind(this.fs)
+      this.fs.isFile = this.fs.isFile.bind(this.fs)
       this.paused = false
       this.onresume = null
       this.moduleStack = []
@@ -230,7 +232,6 @@ function iterateUnexecuted (visitor) {
 
   visitor.cfg.insertFrame(oncomplete)
   visitor.moduleStack.push(func.module)
-  console.log('!!', func._name)
   func.call(visitor.cfg, context, args)
   return true
 

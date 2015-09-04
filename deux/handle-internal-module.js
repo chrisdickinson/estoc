@@ -36,6 +36,9 @@ function handleInternalModule (visitor, sourceModule, targetName, ready) {
       return ready(err)
     }
 
+    if (data.slice(0, 2) === '#!') {
+      data = data.split('\n').slice(1).join('\n')
+    }
     try {
       var ast = esprima.parse(
         wrapper.join(data),
