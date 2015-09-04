@@ -40,5 +40,8 @@ function getWeight (sfi, fn, gen) {
   var numRefs = Math.min(fn._references.size, 100) / 100
   var arity = 10 - Math.min(sfi.arity(), 10) / 10
   var generation = (100 - Math.min(gen - sfi._generation, 100)) / 100
-  return Number(Boolean(sfi.isExport)) + size * 0.75 + generation * 0.25
+  return -fn.module.id * 100 +
+    Number(Boolean(sfi.isExport)) * 10 +
+    size * 0.75 +
+    generation * 0.25
 }

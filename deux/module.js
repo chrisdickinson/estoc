@@ -6,9 +6,11 @@ const RequireImpl = require('./require-impl.js')
 const path = require('path')
 
 function exportModule () {
+  var ID = 0
   return class Module {
     constructor(filename, ast, exportsObject) {
       this.filename = filename
+      this.id = ID++
       this.ast = ast
       this.exports = exportsObject
       this.complete = false
