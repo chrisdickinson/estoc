@@ -1,7 +1,6 @@
 'use strict'
 
-const extractFiles = require('./extract-tar.js')
-const Visitor = require('./visitor.js')
+const estoc = require('./estoc.js')
 const fs = require('fs')
 
 if (require.main === module) {
@@ -13,42 +12,26 @@ function main (argv) {
     return console.log('pass a path to the command, geez')
   }
 
-  process.stderr.write('\r' + argv[0])
+  const maybeTarball = /\.(tar.gz|tar|tgz|t.z)$/.test(argv[0])
 
-  if (/\.(tar.gz|tar|tgz|t.z)$/.test(argv[0])) {
-    return extractFiles(argv[0], function (err, resolveFS) {
-      if (err) {
-        console.log(argv[0])
-        throw err
-      }
-      const visitor = new Visitor(resolveFS)
-      const entryPoints = resolveFS.getNames()
-      return iter()
+  return (maybeTarball ?
+    estoc.createTarballStream :
+    estoc.createFileStream)(argv[0])
+      .on('data', ondata)
 
-      function iter () {
-        if (!entryPoints.length) {
-          return oncomplete()
-        }
-        visitor.run(entryPoints.shift(), function (err) {
-          if (err) {
-            return oncomplete(err)
-          }
-          iter()
-        })
-      }
-    })
-  } 
-  
-  if (fs.statSync(argv[0]).isDirectory()) {
-    return
+  function ondata (info) {
+    console.log(
+      prettyPosition(info.accessChain[info.accessChain.length - 1]) + ' ' +
+      info.accessChain[info.accessChain.length - 1].manner + ' ' +
+      info.accessChain.map(xs => xs.name).join('.')
+    )
   }
+}
 
-  const visitor = new Visitor()
-  return visitor.run(argv[0], oncomplete)
-
-  function oncomplete (err) {
-    if (err) {
-      console.trace(err, err.stack)
-    }
-  }
+function prettyPosition (acc) {
+  return [
+    acc.filename,
+    acc.position.start.line,
+    acc.position.start.column
+  ].join(':')
 }

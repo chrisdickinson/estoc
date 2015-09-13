@@ -22,13 +22,14 @@ function defaultIsFile (file, ready) {
 
 function exportVisitor() {
   return class Visitor {
-    constructor (userFS) {
+    constructor (stream, userFS) {
       this.fs = userFS || {
         readFile: fs.readFile,
         isFile: defaultIsFile
       }
       this.fs.readFile = this.fs.readFile.bind(this.fs)
       this.fs.isFile = this.fs.isFile.bind(this.fs)
+      this.stream = stream
       this.paused = false
       this.onresume = null
       this.moduleStack = []
@@ -75,34 +76,15 @@ function exportVisitor() {
       var current = spy
       var acc = []
       while (current) {
-        acc.unshift(current)
-        //if (current.access.manner === Spy.CONTEXTLOAD) {
-        //  break
-        //}
+        acc.unshift(current.access)
         current = current.parent
       }
-      console.log(prettyPosition(acc[acc.length - 1].access) + ' ' +
-      acc[acc.length - 1].access.manner + ' ' +
-      acc.map(xs => xs.access.name).join('.'))
+      this.stream.push({
+        accessChain: acc,
+        args: args
+      })
     }
   }
-}
-
-function prettyPosition (acc) {
-  return [
-    acc.filename,
-    acc.position.start.line,
-    acc.position.start.column
-  ].join(':')
-}
-
-function prettyAccess (spy, idx, all) {
-  var acc = spy.access
-  return ([
-    acc.filename,
-    pos.start.line,
-    pos.start.column
-  ].join(':') + ' ' + acc.manner + ' ' + acc.name)
 }
 
 function advance (visitor, ready) {
@@ -139,6 +121,10 @@ function onfunction (visitor, fn, ast) {
   visitor.lastFunction = fn
   visitor.unexecutedFunctions.add(fn)
 
+  var frame = visitor.cfg._callStack.current()
+  if (frame) {
+    visitor.stream.emit('defn', fn, frame.getFunction())
+  }
   var caller = visitor.cfg._callStack.current().getFunction()
   fn.module = caller && caller.module ? caller.module :
     visitor.moduleStack[visitor.moduleStack.length - 1]
@@ -161,6 +147,13 @@ function oncall (visitor, fn, ctxt, args, isRecursion) {
   }
 
 
+  if (visitor.cfg._callStack.current()) {
+    visitor.stream.emit(
+      'callfn', 
+      visitor.cfg._callStack.current().getFunction(),
+      fn
+    )
+  }
   // only (naturally) execute any given function once.
   if (fn.isFunction() &&
       !fn.isUnknown() &&
@@ -203,12 +196,15 @@ function iterateUnexecuted (visitor) {
   const args = new Array(arity)
   const argNames = sfi.parameters()
   sfi._fakeCall = true
-  for (var i = 0; i < arity; ++i) {
-    const marks = func.getMark('ioc')
-    if (marks.length) {
-      const spy = marks[0]
+  const marks = func.getMark('ioc')
+  if (marks.length) {
+    const spy = marks[0]
+    for (var i = 0; i < arity; ++i) {
       args[i] = spy.makeIOCArgument(argNames[i], i)
-    } else {
+    }
+    visitor.stream.emit('ioc-callfn', spy, func)
+  } else {
+    for (var i = 0; i < arity; ++i) {
       args[i] = visitor.cfg.makeUnknown()
     }
   }
