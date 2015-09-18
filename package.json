@@ -2,9 +2,9 @@
   "name": "estoc",
   "version": "2.0.0",
   "description": "a static analyzer for npm packages",
-  "main": "index.js",
+  "main": "./lib/estoc.js",
   "bin": {
-    "estoc": "./test.js"
+    "estoc": "./lib/entry.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
