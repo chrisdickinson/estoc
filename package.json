@@ -13,7 +13,7 @@
   "license": "MIT",
   "dependencies": {
     "concat-stream": "^1.5.0",
-    "escontrol": "^6.0.0",
+    "escontrol": "^6.1.2",
     "espree": "^2.0.0",
     "esprima": "^2.5.0",
     "inherits": "^2.0.1",
